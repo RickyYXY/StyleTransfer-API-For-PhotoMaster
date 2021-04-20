@@ -17,9 +17,10 @@ from utils import *
 
 def train_new_style(style_img_path, style_model_path):
     # Basic params settings
-    dataset_path = ""  # 此处为coco14数据集的地址
+    dataset_path = "datasets"  # 此处为coco14数据集的地址
     epochs = 1
-    batch_size = 4
+    batch_size = 2  # 4
+    max_train_batch = 1000
     image_size = 256
     style_size = None
     # 以下两个参数值可能需要修改
@@ -28,7 +29,7 @@ def train_new_style(style_img_path, style_model_path):
     lambda_content = float(1e5)
     lambda_style = float(1e10)
     lr = float(1e-3)
-    device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # Create dataloader for the training data
     train_dataset = datasets.ImageFolder(
@@ -98,6 +99,9 @@ def train_new_style(style_img_path, style_model_path):
                     np.mean(epoch_metrics["total"]),
                 )
             )
+            batches_done = epoch * len(dataloader) + batch_i + 1
+            if(batches_done >= max_train_batch):
+                break
 
     # Save trained model
     torch.save(transformer.state_dict(), style_model_path)
