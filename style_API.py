@@ -14,6 +14,7 @@ from utils import *
 # >style_img_path: 风格图像的文件路径（含文件名）
 # >style_model_path: 模型的保存地址（含文件名）
 def train_new_style(style_img_path, style_model_path):
+    # basic params settings
     dataset_path = ""
     epochs = 1
     batch_size = 4
@@ -22,8 +23,7 @@ def train_new_style(style_img_path, style_model_path):
     lambda_content = float(1e5)
     lambda_style = float(1e10)
     lr = float(1e-3)
-
-    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
     # Create dataloader for the training data
     train_dataset = datasets.ImageFolder(
