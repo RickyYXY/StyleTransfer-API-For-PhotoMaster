@@ -20,7 +20,7 @@ def train_new_style(style_img_path, style_model_path):
     dataset_path = "datasets"  # 此处为coco14数据集的地址
     epochs = 1
     batch_size = 2  # 4
-    max_train_batch = 1000
+    max_train_batch = 10000
     image_size = 256
     style_size = None
     # 以下两个参数值可能需要修改
