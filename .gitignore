@@ -1,0 +1,6 @@
+datasets/train2014
+images
+trained_model
+checkpoints
+__pycache__
+.vscode
