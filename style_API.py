@@ -9,6 +9,7 @@ from torchvision.utils import save_image
 from models import TransformerNet, VGG16
 from utils import *
 
+
 # training API
 # params:
 # >style_img_path: 风格图像的文件路径（含文件名）
@@ -20,14 +21,15 @@ def train_new_style(style_img_path, style_model_path):
     dataset_path = "datasets"  # 此处为coco14数据集的地址
     epochs = 1
     batch_size = 2  # 4
-    max_train_batch = 10000
+    max_train_batch = 20000
     image_size = 256
     style_size = None
-    # 以下两个参数值可能需要修改
-    # 原论文lua实现中为1.0,5.0
+    # 以下三个参数值可能需要修改
+    # 原论文lua实现中为1.0,5.0,1e-6
     # tensorflow版本中为7.5(15),100
     lambda_content = float(1e5)
     lambda_style = float(1e10)
+    lambda_tv = float(2e2)
     lr = float(1e-3)
     device = torch.device("cuda:0" if torch.cuda.is_available() else "cpu")
 
@@ -53,7 +55,7 @@ def train_new_style(style_img_path, style_model_path):
     gram_style = [gram_matrix(y) for y in features_style]
 
     for epoch in range(epochs):
-        epoch_metrics = {"content": [], "style": [], "total": []}
+        # epoch_metrics = {"content": [], "style": [], "total": []}
         for batch_i, (images, _) in enumerate(dataloader):
             optimizer.zero_grad()
 
@@ -68,41 +70,31 @@ def train_new_style(style_img_path, style_model_path):
             content_loss = lambda_content * \
                 l2_loss(features_transformed.relu2_2,
                         features_original.relu2_2)
+            content_loss /= batch_size
 
             # Compute style loss as MSE between gram matrices
-            style_loss = 0.0
+            style_loss = 0
             for ft_y, gm_s in zip(features_transformed, gram_style):
                 gm_y = gram_matrix(ft_y)
                 style_loss += l2_loss(gm_y, gm_s[: images.size(0), :, :])
             style_loss *= lambda_style
+            style_loss /= batch_size
 
-            total_loss = content_loss + style_loss
+            # Compute tv loss
+            y_tv = l2_loss(
+                images_transformed[:, :, 1:, :], images_transformed[:, :, :image_size-1, :])
+            x_tv = l2_loss(
+                images_transformed[:, :, :, 1:], images_transformed[:, :, :, :image_size-1])
+            tv_loss = lambda_tv*2 * \
+                (x_tv/image_size + y_tv/image_size)/batch_size
+
+            total_loss = content_loss + style_loss + tv_loss
             total_loss.backward()
             optimizer.step()
 
-            epoch_metrics["content"] += [content_loss.item()]
-            epoch_metrics["style"] += [style_loss.item()]
-            epoch_metrics["total"] += [total_loss.item()]
-
-            sys.stdout.write(
-                "\r[Epoch %d/%d] [Batch %d/%d] [Content: %.2f (%.2f) Style: %.2f (%.2f) Total: %.2f (%.2f)]"
-                % (
-                    epoch + 1,
-                    epochs,
-                    batch_i,
-                    len(train_dataset),
-                    content_loss.item(),
-                    np.mean(epoch_metrics["content"]),
-                    style_loss.item(),
-                    np.mean(epoch_metrics["style"]),
-                    total_loss.item(),
-                    np.mean(epoch_metrics["total"]),
-                )
-            )
             batches_done = epoch * len(dataloader) + batch_i + 1
             if(batches_done >= max_train_batch):
                 break
-
     # Save trained model
     torch.save(transformer.state_dict(), style_model_path)
 
