@@ -21,7 +21,7 @@ def train_new_style(style_img_path, style_model_path):
     # Basic params settings
     dataset_path = "datasets"  # 此处为coco14数据集的地址
     epochs = 1
-    batch_size = 4  # 4
+    batch_size = 2  
     max_train_batch = 20000
     image_size = 256
     style_size = None
@@ -32,7 +32,7 @@ def train_new_style(style_img_path, style_model_path):
     lambda_style = float(1e10)
     lambda_tv = float(2e2)
     lr = float(1e-3)
-    device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Create dataloader for the training data
     train_dataset = datasets.ImageFolder(
@@ -107,7 +107,7 @@ def train_new_style(style_img_path, style_model_path):
 
 
 def transfer_img(usr_img_path, style_model_path, new_img_path):
-    device = torch.device("cuda:2" if torch.cuda.is_available() else "cpu")
+    device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Define model and load model checkpoint
     transformer = TransformerNet().to(device)
