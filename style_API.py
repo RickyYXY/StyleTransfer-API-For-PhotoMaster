@@ -1,6 +1,5 @@
 import sys
 from PIL import Image, ImageFile
-ImageFile.LOAD_TRUNCATED_IMAGES = True
 import numpy as np
 import torch
 from torch.optim import Adam
@@ -18,6 +17,7 @@ from utils import *
 
 
 def train_new_style(style_img_path, style_model_path):
+    ImageFile.LOAD_TRUNCATED_IMAGES = True
     # Basic params settings
     dataset_path = "datasets"  # 此处为coco14数据集的地址
     epochs = 1
