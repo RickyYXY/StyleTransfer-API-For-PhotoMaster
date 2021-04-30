@@ -20,7 +20,7 @@ if __name__ == "__main__":
                         required=True, help="path to training dataset")
     parser.add_argument("--style_image", type=str,
                         default="style-images/mosaic.jpg", help="path to style image")
-    parser.add_argument("--epochs", type=int, default=1,
+    parser.add_argument("--epochs", type=int, default=2,
                         help="Number of training epochs")
     parser.add_argument("--batch_size", type=int, default=2,
                         help="Batch size for training")
@@ -80,26 +80,17 @@ if __name__ == "__main__":
 
     image_sample = style_transform()(
         Image.open("C:/Users/yxy/Desktop/大学/个人/照片/彩色.jpg"))
-    image_sample = image_sample.unsqueeze(0)
+    image_sample = image_sample.unsqueeze(0).to(device)
 
     def save_sample(batches_done):
         """ Evaluates the model and saves image samples """
         transformer.eval()
-        # with torch.no_grad():
-        #   output = transformer(image_samples.to(device))
-        # image_grid = denormalize(
-        #     torch.cat((image_samples.cpu(), output.cpu()), 2))
-        # save_image(
-        #     image_grid, f"images/outputs/{style_name}-training/{batches_done}.jpg", nrow=4)
-
         # Stylize image
         with torch.no_grad():
-            output = denormalize(transformer(image_sample.to(device))).cpu()
+            output = denormalize(transformer(image_sample)).cpu()
         # Save image
-        image_sample.cpu()
         save_image(
             output, f"images/outputs/{style_name}-training/{batches_done}.jpg")
-        del output
         transformer.train()
 
     for epoch in range(args.epochs):
@@ -115,18 +106,22 @@ if __name__ == "__main__":
             features_transformed = vgg(images_transformed)
 
             # Compute content loss as MSE between features
-            content_loss = args.lambda_content * \
+            content_size = features_transformed.relu2_2.shape[0]*features_transformed.relu2_2.shape[1] * \
+                features_transformed.relu2_2.shape[2]*features_transformed.relu2_2.shape[3]
+            content_loss = args.lambda_content*2 * \
                 l2_loss(features_transformed.relu2_2,
                         features_original.relu2_2)
-            content_loss /= args.batch_size
+            content_loss /= content_size
 
             # Compute style loss as MSE between gram matrices
             style_loss = 0
             for ft_y, gm_s in zip(features_transformed, gram_style):
                 gm_y = gram_matrix(ft_y)
-                style_loss += l2_loss(gm_y, gm_s[: images.size(0), :, :])
-            style_loss *= args.lambda_style
-            style_loss /= args.batch_size
+                gm_size = gm_y.shape[0]*gm_y.shape[1]*gm_y.shape[2]
+                style_loss += l2_loss(gm_y,
+                                      gm_s[: images.size(0), :, :])/gm_size
+            style_loss *= args.lambda_style*2
+            # style_loss /= args.batch_size
 
             # Compute tv loss
             y_tv = l2_loss(
