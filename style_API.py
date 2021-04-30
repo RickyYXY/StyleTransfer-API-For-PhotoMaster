@@ -21,15 +21,15 @@ def train_new_style(style_img_path, style_model_path):
     # Basic params settings
     dataset_path = "datasets"  # 此处为coco14数据集的地址
     epochs = 1
-    batch_size = 2  
-    max_train_batch = 20000
+    batch_size = 4
+    # max_train_batch = 20000
     image_size = 256
     style_size = None
     # 以下三个参数值可能需要修改
     # 原论文lua实现中为1.0,5.0,1e-6
     # tensorflow版本中为7.5(15),100
-    lambda_content = float(1e5)
-    lambda_style = float(1e10)
+    lambda_content = float(7.5e0)
+    lambda_style = float(1e2)
     lambda_tv = float(2e2)
     lr = float(1e-3)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
@@ -68,18 +68,22 @@ def train_new_style(style_img_path, style_model_path):
             features_transformed = vgg(images_transformed)
 
             # Compute content loss as MSE between features
-            content_loss = lambda_content * \
+            content_size = features_transformed.relu2_2.shape[0]*features_transformed.relu2_2.shape[1] * \
+                features_transformed.relu2_2.shape[2] * \
+                features_transformed.relu2_2.shape[3]
+            content_loss = lambda_content*2 * \
                 l2_loss(features_transformed.relu2_2,
                         features_original.relu2_2)
-            content_loss /= batch_size
+            content_loss /= content_size
 
             # Compute style loss as MSE between gram matrices
             style_loss = 0
             for ft_y, gm_s in zip(features_transformed, gram_style):
                 gm_y = gram_matrix(ft_y)
-                style_loss += l2_loss(gm_y, gm_s[: images.size(0), :, :])
-            style_loss *= lambda_style
-            style_loss /= batch_size
+                gm_size = gm_y.shape[0]*gm_y.shape[1]*gm_y.shape[2]
+                style_loss += l2_loss(gm_y,
+                                      gm_s[: images.size(0), :, :])/gm_size
+            style_loss *= lambda_style*2
 
             # Compute tv loss
             y_tv = l2_loss(
@@ -93,9 +97,6 @@ def train_new_style(style_img_path, style_model_path):
             total_loss.backward()
             optimizer.step()
 
-            batches_done = epoch * len(dataloader) + batch_i + 1
-            if(batches_done >= max_train_batch):
-                break
     # Save trained model
     torch.save(transformer.state_dict(), style_model_path)
 
