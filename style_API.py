@@ -26,12 +26,15 @@ def train_new_style(style_img_path, style_model_path):
     image_size = 256
     style_size = None
     # 以下三个参数值可能需要修改
+    # 1. 1e3 1e6 1 ep=24000
+    # 2. 1e2 1e5 0.5 ep=18000
+    # 3. 5e1 5e4 0.01 ep=max lr=1e-4
     # 原论文lua实现中为1.0,5.0,1e-6
     # tensorflow版本中为7.5(15),100
-    lambda_content = float(7.5e0)
-    lambda_style = float(1e2)
-    lambda_tv = float(2e2)
-    lr = float(1e-3)
+    lambda_content = float(5e1)
+    lambda_style = float(5e4)
+    lambda_tv = float(0.01)
+    lr = float(1e-4)
     device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
 
     # Create dataloader for the training data
